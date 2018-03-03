@@ -36,6 +36,7 @@ def obj_fun(elo_params, init_elo, data, teams):
     l_ID = np.array(data['LTeamID'])
     w_score = np.array(data['WScore'])
     l_score = np.array(data['LScore'])
+    # seasons, w_ID, l_ID, w_score, l_score = data[['Season', 'WTeamID', 'LTeamID', 'WScore', 'LScore']].values.T
     current_season = seasons[0]
     for ix in range(N):
         if seasons[ix] > current_season:
@@ -63,4 +64,6 @@ if __name__=="__main__":
     data = data.loc[np.logical_and(data['Season']>=2003, data['Season']<2014)]
     data = data.reset_index(drop=True)
 
-    pop, bf = evolutionary_search(10, 10, 0.5, 0.5, obj_fun, elo_params, init_elo, data, teams)
+    pop, bf = evolutionary_search(250, 100, 0.5, 0.5, obj_fun, elo_params, init_elo, data, teams)
+    print(pop)
+    print(bf)
