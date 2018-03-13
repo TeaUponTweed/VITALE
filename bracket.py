@@ -42,29 +42,34 @@ def gen_windows(itr, n):
         yield win
 
 
-def simulate_play(bracket: List[Team]):
-
-    print(bracket)
-
+def gen_tiers(bracket: List[Team], verbose: bool = False):
+    yield bracket
     while len(bracket) > 1:
-        def gen_winners():
+        def gen_winners(bracket):
             for t1, t2 in gen_windows(bracket, 2):
                 p = probability_a_beats_b(t1, t2)
-                print(t1, t2, p)
                 t1wins = random.random() < p
                 if t1wins != (t1.rank < t2.rank):
-                    if t2.rank > t1.rank:
-                        print('wow {} beat {}'.format(t2, t1))
-                    else:
-                        print('wow {} beat {}'.format(t1, t2))
+                    if verbose:
+                        print(t1, t2, p)                
+                        if t2.rank > t1.rank:
+                            print('wow {} beat {}'.format(t2, t1))
+                        else:
+                            print('wow {} beat {}'.format(t1, t2))
                 if t1wins:
                     yield t1
                 else:
                     yield t2
 
-        bracket = list(gen_winners())
-        print(bracket)
-        
+        bracket = list(gen_winners(bracket))
+        yield bracket
+
+    yield bracket
+
+
+def simulate_play(bracket):
+    for _ in gen_tiers(bracket, True):
+        pass
 
 def _next_layer(pls):
     out=[]
@@ -81,14 +86,21 @@ def seeding(nplayers):
         seed = _next_layer(seed)
     return [s - 1 for s in seed]
 
+
 def main():
+    teams = setup_bracket()
+    simulate_play(teams)
+
+
+def setup_bracket() -> List[Team]:
     teams = [Team(random.randint(1250, 1750)) for _ in range(32)]
     seeding_ixs = seeding(len(teams))
     teams = sorted(teams, key=lambda  x: x.elo, reverse=True)
     for i, team in enumerate(teams):
         team.rank = i + 1
     teams = [teams[ix] for ix in seeding_ixs]
-    simulate_play(teams)
+    return teams
+
 
 if __name__ == '__main__':
     main()
