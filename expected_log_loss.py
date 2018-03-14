@@ -20,35 +20,25 @@ def get_probabilities(teams, dumb=False):
             if t1.rank == t2.rank:
                 continue
             p = probability_a_beats_b(t1, t2)
-            if dumb:
-                if p > 0.5:
-                    p = 0.80
-                else:
-                    p = 0.20
+
             P[t1.rank, t2.rank] = p
             P[t2.rank, t1.rank] = 1 - p
 
     return P
 
 
-def score_playout(playout):
-    P = get_probabilities(playout[0])
-    Pdumb = get_probabilities(playout[0], dumb=True)
+def score_playout(playout, probfunc):
     logloss = 0
-    dumb_logloss = 0
     n = 0
-    for tier1, tier2 in pairwise(playout):
-        next_ranks = set(team.rank for team in tier2)
-        for team1, team2 in gen_windows(tier1, 2):
-            team1wins = int(team1.rank in next_ranks)
+    for competitors, winners in pairwise(playout):
+        winner_ids = set(team.team_id for team in winners)
+        for team1, team2 in gen_windows(competitors, 2):
+            team1wins = int(team1.team_id in winner_ids)
             n += 1
-            p = P[team1.rank, team2.rank]
-            pdumb = Pdumb[team1.rank, team2.rank]
+            p = probfunc(team1, team2)
             logloss += team1wins * log(p) + (1  - team1wins) * log(1-p)
-            dumb_logloss += team1wins * log(pdumb) + (1  - team1wins) * log(1-pdumb)
-    return -logloss/n, -dumb_logloss/n
 
-
+    return -logloss/n
 
 
 def get_cdf_xy(data):
@@ -61,10 +51,18 @@ def main():
     scores, dumb_scores = [], []
     for _ in range(50):
         starting_bracket = setup_bracket()
+        P = get_probabilities(starting_bracket)
+        def get_prob(t1, t2):
+            return P[t1.rank, t2.rank]
+
+        def get_dumb_prob(t1, t2):
+            p = get_prob(t1, t2)
+            return 0.8 if p > 0.5 else 0.2
+
         playout = list(gen_tiers(starting_bracket))
-        # for _ in playout:
-        #     print(_)
-        logloss, dumb_logloss = score_playout(playout)
+
+        logloss = score_playout(playout, get_prob)
+        dumb_logloss = score_playout(playout, get_dumb_prob)
         scores.append(logloss)
         dumb_scores.append(dumb_logloss)
     plt.plot(*get_cdf_xy(scores), label='not dumb')
