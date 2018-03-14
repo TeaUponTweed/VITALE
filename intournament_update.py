@@ -27,6 +27,10 @@ class Team:
                 prob += prob_func(tid1, tid2) * w1 * w2
                 total_weight += w1 * w2
         # normalize
+        # print(prob)
+        # print(total_weight)
+        # print(prob_func(self.team_id, other_team.team_id))
+        # print('*****')
         prob = prob/total_weight
         assert 0 < prob < 1
         return prob
@@ -50,14 +54,23 @@ def main():
             winner_ids = set(winner.team_id for winner in winners)
             updated_winners = []
             for team1, team2 in gen_windows(competitors, 2):
-                winner = team1 if team1.team_id in winner_ids else team2
-                loser = team2 if team1.team_id in winner_ids else team1
-                updated_winner = Team(winner.team_id, winner.p_weights.copy())
+                if team1.team_id in winner_ids:
+                    assert team2.team_id not in winner_ids
+                    winner, loser = team1, team2
+                else:
+                    assert team1.team_id not in winner_ids
+                    winner, loser = team2, team1
+
                 # TODO learn suprise
-                suprise = probability_a_beats_b(loser, winner)
+                suprise = probability_a_beats_b(loser, winner)*0.1
+                updated_winner = Team(winner.team_id, winner.p_weights.copy())
                 updated_winner.win(loser.team_id, suprise)
-                updated_winners.append(winner)
+                updated_winners.append(updated_winner)
+            # reorder for bracket
+            updated_winners = [next(w for w in updated_winners if w.team_id == winner.team_id) for winner in winners]
             updated_playout.append(updated_winners)
+        # pprint(playout[-4:])
+        # pprint(updated_playout[-4:])
         # score original playout
         print(season, 'original', score_playout(playout, probability_a_beats_b))
         # score updated playout
